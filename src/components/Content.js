@@ -1,195 +1,323 @@
-import { useEffect, useState } from 'react';
-import {
-  collection,
-  getDocs,
-  query,
-  orderBy,
-  limit,
-  startAfter,
-  where,
-} from 'firebase/firestore';
-// import { orderByChild } from 'firebase/database';
-import { db } from '../firebase.config';
-import { toast } from 'react-toastify';
+import { startTransition, useEffect, useState } from 'react';
+import FirebaseFirestoreService from '../FirebaseFirestoreService';
 import ContentHeader from './ContentHeader';
 import ParkItem from './ParkItem';
-import ParkTypeSelect from './ParkTypeSelect';
-import StateSelect from './StateSelect';
-import ParkList from './ParkList';
 
 function Content() {
-  const parksRef = collection(db, 'nationalParks');
+  // const [currentPark, setCurrentPark] = useState(null);
   const [parks, setParks] = useState([]);
-  const [loader, setLoader] = useState(true);
-  const [lastFetchedPark, setLastFetchedPark] = useState(null);
-  const [selectedParkType, setSelectedParkType] = useState('Any');
-  const [selectedState, setSelectedState] = useState('Any');
-  const [parkQuery, setParkQuery] = useState(
-    query(parksRef, orderBy('name'), startAfter(lastFetchedPark), limit(9))
-  );
+  const [isLoading, setIsLoading] = useState(false);
+  const [parkTypeFilter, setParkTypeFilter] = useState('');
+  const [stateSelectFilter, setStateSelectFilter] = useState('');
+  const [orderBy, setOrderBy] = useState('name');
+  const [parksPerPage, setParksPerPage] = useState(9);
+
+  const setParkTypeFilterHandler = (parkType) => {
+    startTransition(() => {
+      setParkTypeFilter(parkType);
+    });
+  };
+
+  const setStateSelectFilterHandler = (parkType) => {
+    startTransition(() => {
+      setStateSelectFilter(parkType);
+    });
+  };
+
+  // const setOrderByHandler = (order) => {
+  //   startTransition(() => {
+  //     setOrderBy(order);
+  //   });
+  // };
+
+  // Handle parks per page function.  Uncomment this after moving the dropdown
+  // const setParksPerPageHandler = (parks) => {
+  //   startTransition(() => {
+  //     setParksPerPage(parks);
+  //   });
+  // };
+
+  const setParksHandler = (parks) => {
+    startTransition(() => {
+      setParks(parks);
+    });
+  };
+
+  // const setCurrentParkHandler = (parks) => {
+  //   startTransition(() => {
+  //     setCurrentPark(parks);
+  //   });
+  // };
 
   useEffect(() => {
-    const fetchParks = async () => {
-      try {
-        const q = parkQuery;
+    setIsLoading(true);
 
-        const querySnapshot = await getDocs(q);
+    fetchParks()
+      .then((fetchedParks) => {
+        setParksHandler(fetchedParks);
+      })
+      .catch((error) => {
+        console.error(error.message);
+        throw error;
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [parkTypeFilter, stateSelectFilter, orderBy, parksPerPage]);
+  
 
-        const lastVisible = querySnapshot.docs[querySnapshot.docs.length - 1];
-        // console.log(lastVisible)
+  async function fetchParks(cursorId = '') {
+    
+    const queries = [];
 
-        if (lastFetchedPark === null) {
-          console.log('null');
-        } else console.log('not null');
-        let temp = lastFetchedPark;
-        setLastFetchedPark(lastVisible);
+    if (parkTypeFilter) {
+      queries.push({
+        field: 'parkType',
+        condition: '==',
+        value: parkTypeFilter,
+      });
+    }
 
-        if (temp === lastFetchedPark) {
-          console.log(true);
-        } else console.log(false);
+    if (stateSelectFilter) {
+      queries.push({
+        field: 'state',
+        condition: '==',
+        value: stateSelectFilter,
+      });
+    }
 
-        let parks = [];
+    const orderByField = 'name';
+    let orderByDirection = 'asc';
+    // let orderByDirection;
+    // if (orderBy) {
+    //   switch (orderBy) {
+    //     case 'orderAsc':
+    //       orderByDirection = 'asc';
+    //       break;
+    //     case 'orderDesc':
+    //       orderByDirection = 'desc';
+    //       break;
+    //     default:
+    //       break;
+    //   }
+    // }
 
-        querySnapshot.forEach((doc) => {
-          // doc.data() is never undefined for query doc snapshots
-          return parks.push({
-            id: doc.id,
-            data: doc.data(),
-          });
-        });
+    let fetchedParks = [];
 
-        setParks(parks);
-        setLoader(false);
-      } catch (error) {
-        toast.error('Could not fetch parks');
-      }
-    };
-
-    fetchParks();
-  }, [parkQuery]);
-
-  //Load More
-  const onFetchMoreParks = async () => {
     try {
-      const q = parkQuery;
-
-      const querySnapshot = await getDocs(q);
-
-      const lastVisible = querySnapshot.docs[querySnapshot.docs.length - 1];
-
-      setLastFetchedPark(lastVisible);
-
-      let parks = [];
-
-      querySnapshot.forEach((doc) => {
-        // doc.data() is never undefined for query doc snapshots
-        return parks.push({
-          id: doc.id,
-          data: doc.data(),
-        });
+      const response = await FirebaseFirestoreService.readDocuments({
+        collection: 'nationalParks',
+        queries: queries,
+        orderByField: orderByField,
+        orderByDirection: orderByDirection,
+        perPage: parksPerPage,
+        cursorId: cursorId,
       });
 
-      setParks((prevState) => [...prevState, ...parks]);
-      setLoader(false);
+      const newParks = response.docs.map((parkDoc) => {
+        const id = parkDoc.id;
+        const data = parkDoc.data();
+        // data.publishDate = new Date(data.publishDate.seconds * 1000);
+
+        return { ...data, id };
+      });
+
+      if (cursorId) {
+        fetchedParks = [...parks, ...newParks];
+      } else {
+        fetchedParks = [...newParks];
+      }
     } catch (error) {
-      toast.error('Could not fetch parks');
+      console.error(error.message);
+      throw error;
     }
-  };
+    return fetchedParks;
+  }
 
-  const handleChange = (e) => {
-    if (e.target.name === 'park-type') setSelectedParkType(e.target.value);
-    if (e.target.name === 'selected-state') setSelectedState(e.target.value);
+  // Handle parks per page function.  Uncomment this after moving the dropdown
+  // function handleParksPerPageChange(e) {
+  //   const parksPerPage = e.target.value;
 
-    setLastFetchedPark(null);
+  //   setParksHandler([]);
+  //   setParksPerPageHandler(parksPerPage);
+  // }
 
-    if (selectedParkType === 'Any' && selectedState === 'Any') {
-      console.log(selectedParkType, selectedState);
-      setParkQuery(
-        query(parksRef, orderBy('name'), startAfter(lastFetchedPark), limit(9))
-      );
-    } else if (selectedParkType !== 'Any' && selectedState === 'Any') {
-      console.log(selectedParkType, selectedState);
-      setParkQuery(
-        query(
-          parksRef,
-          where('parkType', '==', selectedParkType),
-          orderBy('name'),
-          startAfter(lastFetchedPark),
-          limit(9)
-        )
-      );
-    } else if (selectedParkType === 'Any' && selectedState !== 'Any') {
-      console.log(selectedParkType, selectedState);
-      setParkQuery(
-        query(
-          parksRef,
-          where('state', '==', selectedState),
-          orderBy('name'),
-          startAfter(lastFetchedPark),
-          limit(9)
-        )
-      );
-    } else if (selectedParkType !== 'Any' && selectedState !== 'Any') {
-      console.log(selectedParkType, selectedState);
-      setParkQuery(
-        query(
-          parksRef,
-          where('parkType', '==', selectedParkType),
-          where('state', '==', selectedState),
-          orderBy('name'),
-          startAfter(lastFetchedPark),
-          limit(9)
-        )
-      );
+  function handleLoadMoreParksClick() {
+    const lastPark = parks[parks.length - 1];
+    const cursorId = lastPark.id;
+
+    handleFetchParks(cursorId);
+  }
+
+  async function handleFetchParks(cursorId = '') {
+    try {
+      const fetchedParks = await fetchParks(cursorId);
+
+      setParksHandler(fetchedParks);
+    } catch (error) {
+      console.error(error.message);
+      throw error;
     }
-  };
+  }
+
+  // function lookupCategoryLabel(categoryKey) {
+  //   const categories = {
+  //     nationalPark: 'National Park',
+  //     nationalForest: 'National Forest',
+  //     statePark: 'State Park',
+  //     countyPark: 'County Park',
+  //   };
+
+  //   const label = categories[categoryKey];
+
+  //   return label;
+  // }
 
   return (
     <>
       <div className="container px-4 px-lg-5">
-        {/* <!-- Heading Row--> */}
         <ContentHeader />
-        {/* <!-- Call to Action--> */}
 
-        {/* <!-- Content Row--> */}
         <div className="row mb-5">
           <div className="col-sm-6">
-            <div className="form-group">
-              <ParkTypeSelect
-                className="form-control"
-                label="Park Type"
-                options={[
-                  { label: 'Any', value: 'any' },
-                  { label: 'National Park', value: 'National Park' },
-                  { label: 'National Forest', value: 'National Forest' },
-                  { label: 'State Park', value: 'State Park' },
-                ]}
-                value={selectedParkType}
-                onChange={handleChange}
-              />
-            </div>
+            <label htmlFor="parkType">Park Type:</label>
+            <select
+              value={parkTypeFilter}
+              onChange={(e) => setParkTypeFilterHandler(e.target.value)}
+              className="form-control"
+              required
+            >
+              <option value="">Any</option>
+              <option value="National Park">National Parks</option>
+              <option value="National Forest">National Forests</option>
+              <option value="State Park">State Parks</option>
+              <option value="County Park">County Parks</option>
+            </select>
           </div>
           <div className="col-sm-6">
-            <div className="form-group">
-              <StateSelect onChange={handleChange} />
-            </div>
+            <label htmlFor="state">State:</label>
+            <select
+              value={stateSelectFilter}
+              onChange={(e) => setStateSelectFilterHandler(e.target.value)}
+              className="form-control"
+              required
+            >
+              <option value="">Any</option>
+              <option value="AL">Alabama</option>
+              <option value="AK">Alaska</option>
+              <option value="AZ">Arizona</option>
+              <option value="AR">Arkansas</option>
+              <option value="CA">California</option>
+              <option value="CO">Colorado</option>
+              <option value="CT">Connecticut</option>
+              <option value="DE">Delaware</option>
+              <option value="DC">District Of Columbia</option>
+              <option value="FL">Florida</option>
+              <option value="GA">Georgia</option>
+              <option value="HI">Hawaii</option>
+              <option value="ID">Idaho</option>
+              <option value="IL">Illinois</option>
+              <option value="IN">Indiana</option>
+              <option value="IA">Iowa</option>
+              <option value="KS">Kansas</option>
+              <option value="KY">Kentucky</option>
+              <option value="LA">Louisiana</option>
+              <option value="ME">Maine</option>
+              <option value="MD">Maryland</option>
+              <option value="MA">Massachusetts</option>
+              <option value="MI">Michigan</option>
+              <option value="MN">Minnesota</option>
+              <option value="MS">Mississippi</option>
+              <option value="MO">Missouri</option>
+              <option value="MT">Montana</option>
+              <option value="NE">Nebraska</option>
+              <option value="NV">Nevada</option>
+              <option value="NH">New Hampshire</option>
+              <option value="NJ">New Jersey</option>
+              <option value="NM">New Mexico</option>
+              <option value="NY">New York</option>
+              <option value="NC">North Carolina</option>
+              <option value="ND">North Dakota</option>
+              <option value="OH">Ohio</option>
+              <option value="OK">Oklahoma</option>
+              <option value="OR">Oregon</option>
+              <option value="PA">Pennsylvania</option>
+              <option value="RI">Rhode Island</option>
+              <option value="SC">South Carolina</option>
+              <option value="SD">South Dakota</option>
+              <option value="TN">Tennessee</option>
+              <option value="TX">Texas</option>
+              <option value="UT">Utah</option>
+              <option value="VT">Vermont</option>
+              <option value="VA">Virginia</option>
+              <option value="WA">Washington</option>
+              <option value="WV">West Virginia</option>
+              <option value="WI">Wisconsin</option>
+              <option value="WY">Wyoming</option>
+              <option value="AS">American Samoa</option>
+              <option value="GU">Guam</option>
+              <option value="MP">Northern Mariana Islands</option>
+              <option value="PR">Puerto Rico</option>
+              <option value="UM">United States Minor Outlying Islands</option>
+              <option value="VI">Virgin Islands</option>
+            </select>
           </div>
+
+          {/* <label className="input-label">
+                <select
+                  value={orderBy}
+                  onChange={(e) => setOrderByHandler(e.target.value)}
+                  className="select"
+                >
+                  <option value="orderDesc">Descending</option>
+                  <option value="orderAsc">Ascending</option>
+                </select>
+              </label> */}
+          {/* </div> */}
+          {/* </div> */}
         </div>
+      </div>
 
-        {/* <div className="row gx-4 gx-lg-5">
-          {parks.map((park) => (
-            <ParkItem park={park.data} id={park.id} key={park.id} />
-          ))}
+      <div className="row gx-4 gx-lg-5">
+        {isLoading ? <h5>Loading...</h5> : null}
+        {!isLoading && parks && parks.length === 0 ? (
+          <h5 className="">No parks found</h5>
+        ) : null}
+        {!isLoading && parks && parks.length > 0 ? (
+          <div className="row gx-4 gx-lg-5">
+            {parks.map((park) => {
+              return <ParkItem park={park} key={park.id} />;
+            })}
+          </div>
+        ) : null}
 
-        </div> */}
-
-        <ParkList parks={parks} />
-
-        {lastFetchedPark && (
-          <p className="loadMore" onClick={onFetchMoreParks}>
-            Load More
-          </p>
-        )}
+        {isLoading || (parks && parks.length > 0) ? (
+          <>
+            {/* Parks per page.  This needs to be moved somewhere else */}
+            {/* <label className="input-label">
+              Parks Per Page:
+              <select
+                value={parksPerPage}
+                onChange={handleParksPerPageChange}
+                className="select"
+              >
+                <option value="3">3</option>
+                <option value="6">6</option>
+                <option value="9">9</option>
+              </select>
+            </label> */}
+            <div className="pagination">
+              <button
+                type="button"
+                onClick={handleLoadMoreParksClick}
+                className="loadMore"
+              >
+                Load More
+              </button>
+            </div>
+          </>
+        ) : null}
       </div>
     </>
   );

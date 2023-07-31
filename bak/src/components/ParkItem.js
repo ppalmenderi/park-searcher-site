@@ -99,7 +99,7 @@ function ParkItem({ park }) {
                 <div className="col-lg-6 col-md-6 col-sm-6">
                   <h2>Activities</h2>
                   {activitiesArray.map((activity) => (
-                    <p key={activity.label}>
+                    <p>
                       <Icon activity={activity.label} />
                       {activity.label}
                     </p>
