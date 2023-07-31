@@ -48,7 +48,6 @@ function ParkItem({ park }) {
   activitiesArray.sort();
 
   return (
-    // <h1>Test</h1>
     <div
       className="col-md-6 col-lg-4 col-sm-3 mb-3"
       style={{ height: '600px' }}

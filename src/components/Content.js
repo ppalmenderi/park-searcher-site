@@ -65,10 +65,8 @@ function Content() {
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [parkTypeFilter, stateSelectFilter, orderBy, parksPerPage]);
-  
 
   async function fetchParks(cursorId = '') {
-    
     const queries = [];
 
     if (parkTypeFilter) {
@@ -279,10 +277,16 @@ function Content() {
         </div>
       </div>
 
-      <div className="row gx-4 gx-lg-5">
-        {isLoading ? <h5>Loading...</h5> : null}
+      <div className="row gx-4 gx-lg-5 d-flex justify-content-center">
+        {isLoading ? (
+          <div>
+            <h5>Loading...</h5>
+          </div>
+        ) : null}
         {!isLoading && parks && parks.length === 0 ? (
-          <h5 className="">No parks found</h5>
+          <div>
+            <h5 className="">No parks found</h5>
+          </div>
         ) : null}
         {!isLoading && parks && parks.length > 0 ? (
           <div className="row gx-4 gx-lg-5">

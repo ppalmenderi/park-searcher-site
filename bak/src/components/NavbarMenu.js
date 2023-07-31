@@ -20,7 +20,7 @@ function NavbarMenu() {
               Home
             </a>
           </li>
-          {/* <li className="nav-item">
+          <li className="nav-item">
             <a className="nav-link" href="#!">
               About
             </a>
@@ -34,7 +34,7 @@ function NavbarMenu() {
             <a className="nav-link" href="#!">
               Services
             </a>
-          </li> */}
+          </li>
         </ul>
       </div>
     </>

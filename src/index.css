@@ -12,6 +12,22 @@ code {
     monospace;
 }
 
+.navbar-title {
+  font-size: 2rem;
+  color: white;
+  text-decoration: none;
+}
+
+.navbar-link {
+  font-size: 1.25rem;
+  color: white;
+  text-decoration: none;
+}
+
+.navbar-link:hover {
+  color: yellow;
+}
+
 .loadMore {
   cursor: pointer;
   width: 8rem;
@@ -69,12 +85,12 @@ pre {
   display: flex;
   justify-content: center;
   align-items: center;
-  overflow: hidden
+  overflow: hidden;
 }
 .fill img {
   flex-shrink: 100;
   min-width: 100%;
-  min-height: 100%
+  min-height: 100%;
 }
 
 .contain {
@@ -96,5 +112,4 @@ pre {
 .card-description {
   text-overflow: ellipsis;
   overflow: hidden;
-
 }

@@ -1,4 +1,8 @@
 import firebase from './FirebaseConfig';
+import { 
+  getFirestore, collection,
+  getCountFromServer  
+} from 'firebase/firestore';
 
 const firestore = firebase.firestore();
 
@@ -16,6 +20,7 @@ const readDocuments = async ({
   cursorId,
 }) => {
   let collectionRef = firestore.collection(collection);
+
 
   if (queries && queries.length > 0) {
     for (const query of queries) {

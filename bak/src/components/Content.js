@@ -8,6 +8,7 @@ function Content() {
   const [parks, setParks] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [parkTypeFilter, setParkTypeFilter] = useState('');
+  const [stateSelectFilter, setStateSelectFilter] = useState('');
   const [orderBy, setOrderBy] = useState('name');
   const [parksPerPage, setParksPerPage] = useState(9);
 
@@ -17,17 +18,24 @@ function Content() {
     });
   };
 
+  const setStateSelectFilterHandler = (parkType) => {
+    startTransition(() => {
+      setStateSelectFilter(parkType);
+    });
+  };
+
   // const setOrderByHandler = (order) => {
   //   startTransition(() => {
   //     setOrderBy(order);
   //   });
   // };
 
-  const setParksPerPageHandler = (parks) => {
-    startTransition(() => {
-      setParksPerPage(parks);
-    });
-  };
+  // Handle parks per page function.  Uncomment this after moving the dropdown
+  // const setParksPerPageHandler = (parks) => {
+  //   startTransition(() => {
+  //     setParksPerPage(parks);
+  //   });
+  // };
 
   const setParksHandler = (parks) => {
     startTransition(() => {
@@ -56,9 +64,11 @@ function Content() {
         setIsLoading(false);
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [parkTypeFilter, orderBy, parksPerPage]);
+  }, [parkTypeFilter, stateSelectFilter, orderBy, parksPerPage]);
+  
 
   async function fetchParks(cursorId = '') {
+    
     const queries = [];
 
     if (parkTypeFilter) {
@@ -69,8 +79,16 @@ function Content() {
       });
     }
 
+    if (stateSelectFilter) {
+      queries.push({
+        field: 'state',
+        condition: '==',
+        value: stateSelectFilter,
+      });
+    }
+
     const orderByField = 'name';
-    let orderByDirection = 'asc'
+    let orderByDirection = 'asc';
     // let orderByDirection;
     // if (orderBy) {
     //   switch (orderBy) {
@@ -116,12 +134,14 @@ function Content() {
     }
     return fetchedParks;
   }
-  function handleParksPerPageChange(e) {
-    const parksPerPage = e.target.value;
 
-    setParksHandler([]);
-    setParksPerPageHandler(parksPerPage);
-  }
+  // Handle parks per page function.  Uncomment this after moving the dropdown
+  // function handleParksPerPageChange(e) {
+  //   const parksPerPage = e.target.value;
+
+  //   setParksHandler([]);
+  //   setParksPerPageHandler(parksPerPage);
+  // }
 
   function handleLoadMoreParksClick() {
     const lastPark = parks[parks.length - 1];
@@ -132,9 +152,9 @@ function Content() {
 
   async function handleFetchParks(cursorId = '') {
     try {
-      const fetchedRecipes = await fetchParks(cursorId);
+      const fetchedParks = await fetchParks(cursorId);
 
-      setParksHandler(fetchedRecipes);
+      setParksHandler(fetchedParks);
     } catch (error) {
       console.error(error.message);
       throw error;
@@ -161,21 +181,90 @@ function Content() {
 
         <div className="row mb-5">
           <div className="col-sm-6">
-            <div className="form-group">
-              Park Type:
-              <select
-                value={parkTypeFilter}
-                onChange={(e) => setParkTypeFilterHandler(e.target.value)}
-                className="form-control"
-                required
-              >
-                <option value=""></option>
-                <option value="National Park">National Parks</option>
-                <option value="National Forest">National Forests</option>
-                <option value="State Park">State Parks</option>
-                <option value="County Park">County Parks</option>
-              </select>
-              {/* <label className="input-label">
+            <label htmlFor="parkType">Park Type:</label>
+            <select
+              value={parkTypeFilter}
+              onChange={(e) => setParkTypeFilterHandler(e.target.value)}
+              className="form-control"
+              required
+            >
+              <option value="">Any</option>
+              <option value="National Park">National Parks</option>
+              <option value="National Forest">National Forests</option>
+              <option value="State Park">State Parks</option>
+              <option value="County Park">County Parks</option>
+            </select>
+          </div>
+          <div className="col-sm-6">
+            <label htmlFor="state">State:</label>
+            <select
+              value={stateSelectFilter}
+              onChange={(e) => setStateSelectFilterHandler(e.target.value)}
+              className="form-control"
+              required
+            >
+              <option value="">Any</option>
+              <option value="AL">Alabama</option>
+              <option value="AK">Alaska</option>
+              <option value="AZ">Arizona</option>
+              <option value="AR">Arkansas</option>
+              <option value="CA">California</option>
+              <option value="CO">Colorado</option>
+              <option value="CT">Connecticut</option>
+              <option value="DE">Delaware</option>
+              <option value="DC">District Of Columbia</option>
+              <option value="FL">Florida</option>
+              <option value="GA">Georgia</option>
+              <option value="HI">Hawaii</option>
+              <option value="ID">Idaho</option>
+              <option value="IL">Illinois</option>
+              <option value="IN">Indiana</option>
+              <option value="IA">Iowa</option>
+              <option value="KS">Kansas</option>
+              <option value="KY">Kentucky</option>
+              <option value="LA">Louisiana</option>
+              <option value="ME">Maine</option>
+              <option value="MD">Maryland</option>
+              <option value="MA">Massachusetts</option>
+              <option value="MI">Michigan</option>
+              <option value="MN">Minnesota</option>
+              <option value="MS">Mississippi</option>
+              <option value="MO">Missouri</option>
+              <option value="MT">Montana</option>
+              <option value="NE">Nebraska</option>
+              <option value="NV">Nevada</option>
+              <option value="NH">New Hampshire</option>
+              <option value="NJ">New Jersey</option>
+              <option value="NM">New Mexico</option>
+              <option value="NY">New York</option>
+              <option value="NC">North Carolina</option>
+              <option value="ND">North Dakota</option>
+              <option value="OH">Ohio</option>
+              <option value="OK">Oklahoma</option>
+              <option value="OR">Oregon</option>
+              <option value="PA">Pennsylvania</option>
+              <option value="RI">Rhode Island</option>
+              <option value="SC">South Carolina</option>
+              <option value="SD">South Dakota</option>
+              <option value="TN">Tennessee</option>
+              <option value="TX">Texas</option>
+              <option value="UT">Utah</option>
+              <option value="VT">Vermont</option>
+              <option value="VA">Virginia</option>
+              <option value="WA">Washington</option>
+              <option value="WV">West Virginia</option>
+              <option value="WI">Wisconsin</option>
+              <option value="WY">Wyoming</option>
+              <option value="AS">American Samoa</option>
+              <option value="GU">Guam</option>
+              <option value="MP">Northern Mariana Islands</option>
+              <option value="PR">Puerto Rico</option>
+              <option value="UM">United States Minor Outlying Islands</option>
+              <option value="VI">Virgin Islands</option>
+            </select>
+          </div>
+
+          {/* <label className="input-label">
                 <select
                   value={orderBy}
                   onChange={(e) => setOrderByHandler(e.target.value)}
@@ -185,8 +274,8 @@ function Content() {
                   <option value="orderAsc">Ascending</option>
                 </select>
               </label> */}
-            </div>
-          </div>
+          {/* </div> */}
+          {/* </div> */}
         </div>
       </div>
 
@@ -198,14 +287,15 @@ function Content() {
         {!isLoading && parks && parks.length > 0 ? (
           <div className="row gx-4 gx-lg-5">
             {parks.map((park) => {
-              return(<ParkItem park={park} key={park.id}/>)
+              return <ParkItem park={park} key={park.id} />;
             })}
           </div>
         ) : null}
 
         {isLoading || (parks && parks.length > 0) ? (
           <>
-            <label className="input-label">
+            {/* Parks per page.  This needs to be moved somewhere else */}
+            {/* <label className="input-label">
               Parks Per Page:
               <select
                 value={parksPerPage}
@@ -216,14 +306,14 @@ function Content() {
                 <option value="6">6</option>
                 <option value="9">9</option>
               </select>
-            </label>
+            </label> */}
             <div className="pagination">
               <button
                 type="button"
                 onClick={handleLoadMoreParksClick}
-                className="primary-button"
+                className="loadMore"
               >
-                LOAD MORE Parks
+                Load More
               </button>
             </div>
           </>
